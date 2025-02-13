@@ -9,7 +9,7 @@ from Gradio_UI import GradioUI
 
 # Below is an example of a tool that does nothing. Amaze us with your creativity !
 @tool
-def my_cutom_tool(arg1:str, arg2:int)-> str: #it's import to specify the return type
+def my_custom_tool(arg1:str, arg2:int)-> str: #it's import to specify the return type
     #Keep this format for the description / args / args description but feel free to modify the tool
     """A tool that does nothing yet 
     Args:
