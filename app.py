@@ -38,7 +38,7 @@ final_answer = FinalAnswerTool()
 model = HfApiModel(
 max_tokens=2096,
 temperature=0.5,
-model_id='https://wxknx1kg971u7k1n.us-east-1.aws.endpoints.huggingface.cloud',# it is possible that this model may be overloaded
+model_id='Qwen/Qwen2.5-Coder-32B-Instruct',# it is possible that this model may be overloaded
 custom_role_conversions=None,
 )
 
