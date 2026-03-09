@@ -116,7 +116,7 @@ agent = CodeAgent(
         calculate_area,          # ← nueva
         get_exchange_rate,       # ← nueva
         DuckDuckGoSearchTool(),
-        CustomFinalAnswerTool(), # ← reemplaza el FinalAnswerTool original
+        CustomFinalAnswerTool(),
     ],
     max_steps=6,
     verbosity_level=1,
