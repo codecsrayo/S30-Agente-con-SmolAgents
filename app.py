@@ -1,23 +1,14 @@
-from smolagents import CodeAgent,DuckDuckGoSearchTool, HfApiModel,load_tool,tool
+from smolagents import CodeAgent, DuckDuckGoSearchTool, HfApiModel, load_tool, tool
 import datetime
 import requests
 import pytz
 import yaml
+import math
 from tools.final_answer import FinalAnswerTool
-
 from Gradio_UI import GradioUI
 
-# Below is an example of a tool that does nothing. Amaze us with your creativity !
-@tool
-def my_custom_tool(arg1:str, arg2:int)-> str: #it's import to specify the return type
-    #Keep this format for the description / args / args description but feel free to modify the tool
-    """A tool that does nothing yet 
-    Args:
-        arg1: the first argument
-        arg2: the second argument
-    """
-    return "What magic will you build ?"
 
+# ── Herramienta original del template ────────────────────────────────────
 @tool
 def get_current_time_in_timezone(timezone: str) -> str:
     """A tool that fetches the current local time in a specified timezone.
@@ -25,37 +16,105 @@ def get_current_time_in_timezone(timezone: str) -> str:
         timezone: A string representing a valid timezone (e.g., 'America/New_York').
     """
     try:
-        # Create timezone object
         tz = pytz.timezone(timezone)
-        # Get current time in that timezone
         local_time = datetime.datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
         return f"The current local time in {timezone} is: {local_time}"
     except Exception as e:
         return f"Error fetching time for timezone '{timezone}': {str(e)}"
 
 
-final_answer = FinalAnswerTool()
+# ── Herramienta A: Calculadora de áreas ──────────────────────────────────
+@tool
+def calculate_area(shape: str, dimension1: float, dimension2: float = 0.0) -> str:
+    """Calculates the area of a geometric shape.
+    Supported shapes: circle, rectangle, triangle, square.
+    Args:
+        shape: Name of the shape (circle, rectangle, triangle, square).
+        dimension1: Primary dimension (radius, width, base, or side length).
+        dimension2: Secondary dimension (height for rectangle/triangle; 0 otherwise).
+    """
+    shape = shape.strip().lower()
+    if shape == "circle":
+        area = math.pi * dimension1 ** 2
+        return f"Area of circle (radius={dimension1}): {area:.4f} square units."
+    elif shape == "rectangle":
+        area = dimension1 * dimension2
+        return f"Area of rectangle ({dimension1} x {dimension2}): {area:.4f} square units."
+    elif shape == "triangle":
+        area = 0.5 * dimension1 * dimension2
+        return f"Area of triangle (base={dimension1}, height={dimension2}): {area:.4f} square units."
+    elif shape == "square":
+        area = dimension1 ** 2
+        return f"Area of square (side={dimension1}): {area:.4f} square units."
+    else:
+        return f"Shape '{shape}' not supported. Use: circle, rectangle, triangle, square."
 
-# If the agent does not answer, the model is overloaded, please use another model or the following Hugging Face Endpoint that also contains qwen2.5 coder:
-# model_id='https://pflgm2locj2t89co.us-east-1.aws.endpoints.huggingface.cloud' 
 
+# ── Herramienta B: Tipo de cambio en vivo ────────────────────────────────
+@tool
+def get_exchange_rate(base_currency: str, target_currency: str) -> str:
+    """Fetches the current exchange rate between two currencies.
+    Common codes: USD, EUR, GBP, JPY, COP, MXN, BRL, CAD.
+    Args:
+        base_currency: ISO 4217 source currency code (e.g. 'USD').
+        target_currency: ISO 4217 target currency code (e.g. 'COP').
+    """
+    base = base_currency.strip().upper()
+    target = target_currency.strip().upper()
+    try:
+        r = requests.get(
+            f"https://api.frankfurter.app/latest?from={base}&to={target}",
+            timeout=8
+        )
+        r.raise_for_status()
+        data = r.json()
+        return f"Exchange rate ({data['date']}): 1 {base} = {data['rates'][target]:.4f} {target}."
+    except Exception as e:
+        return f"Error fetching exchange rate: {str(e)}"
+
+
+# ── FinalAnswerTool personalizado ─────────────────────────────────────────
+class CustomFinalAnswerTool(FinalAnswerTool):
+    """FinalAnswerTool con prefijo, firma y contador de caracteres."""
+    AUTHOR_NAME = "Brayan Rayo"
+
+    def forward(self, answer: str) -> str:
+        char_count = len(answer)
+        return (
+            f"🤖 **Agente dice:**\n"
+            f"{answer}\n\n"
+            f"---\n"
+            f"✍️ *Procesado por {self.AUTHOR_NAME}*\n"
+            f"📊 *Longitud de la respuesta: {char_count} caracteres*"
+        )
+
+
+# ── Modelo ────────────────────────────────────────────────────────────────
 model = HfApiModel(
-max_tokens=2096,
-temperature=0.5,
-model_id='Qwen/Qwen2.5-Coder-32B-Instruct',# it is possible that this model may be overloaded
-custom_role_conversions=None,
+    max_tokens=2096,
+    temperature=0.5,
+    model_id='Qwen/Qwen2.5-Coder-32B-Instruct',
+    custom_role_conversions=None,
 )
 
-
-# Import tool from Hub
+# ── Herramienta de imágenes del Hub ───────────────────────────────────────
 image_generation_tool = load_tool("agents-course/text-to-image", trust_remote_code=True)
 
+# ── Prompts ───────────────────────────────────────────────────────────────
 with open("prompts.yaml", 'r') as stream:
     prompt_templates = yaml.safe_load(stream)
-    
+
+# ── Agente ────────────────────────────────────────────────────────────────
 agent = CodeAgent(
     model=model,
-    tools=[final_answer], ## add your tools here (don't remove final answer)
+    tools=[
+        image_generation_tool,
+        get_current_time_in_timezone,
+        calculate_area,          # ← nueva
+        get_exchange_rate,       # ← nueva
+        DuckDuckGoSearchTool(),
+        CustomFinalAnswerTool(), # ← reemplaza el FinalAnswerTool original
+    ],
     max_steps=6,
     verbosity_level=1,
     grammar=None,
@@ -64,6 +123,5 @@ agent = CodeAgent(
     description=None,
     prompt_templates=prompt_templates
 )
-
 
 GradioUI(agent).launch()
