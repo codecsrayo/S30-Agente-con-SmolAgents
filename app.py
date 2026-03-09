@@ -59,19 +59,21 @@ def get_exchange_rate(base_currency: str, target_currency: str) -> str:
         base_currency: ISO 4217 source currency code. Example: 'USD'
         target_currency: ISO 4217 target currency code. Example: 'COP'
     """
-    # Limpia caracteres extraños que el modelo pueda pasar
-    base = base_currency.strip().upper().split("&")[0].split("=")[-1][:3]
-    target = target_currency.strip().upper().split("&")[0].split("=")[-1][:3]
+    base = base_currency.strip().upper()[:3]
+    target = target_currency.strip().upper()[:3]
     try:
         r = requests.get(
-            f"https://api.frankfurter.app/latest?from={base}&to={target}",
+            f"https://open.er-api.com/v6/latest/{base}",
             timeout=8
         )
         r.raise_for_status()
         data = r.json()
-        return f"Exchange rate ({data['date']}): 1 {base} = {data['rates'][target]:.4f} {target}."
+        if target not in data["rates"]:
+            return f"Currency {target} not supported."
+        rate = data["rates"][target]
+        return f"Exchange rate: 1 {base} = {rate:.2f} {target}."
     except Exception as e:
-        return f"Error fetching exchange rate for {base} to {target}: {str(e)}"
+        return f"Error: {str(e)}"
 
 
 # ── FinalAnswerTool personalizado ─────────────────────────────────────────
