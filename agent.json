@@ -6,7 +6,7 @@
         "final_answer"
     ],
     "model": {
-        "class": "HfApiModel",
+        "class": "InferenceClientModel",
         "data": {
             "max_tokens": 2096,
             "temperature": 0.5,
