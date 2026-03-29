@@ -6,8 +6,8 @@
 import math
 import yaml
 
-from smolagents import CodeAgent, DuckDuckGoSearchTool, HfApiModel, tool, Tool
-from langchain.schema import Document
+from smolagents import CodeAgent, DuckDuckGoSearchTool, InferenceClientModel, tool, Tool
+from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.retrievers import BM25Retriever
 
@@ -271,7 +271,7 @@ def calculate_road_travel_time(
 # Modelo LLM
 # ============================================================
 
-model = HfApiModel(
+model = InferenceClientModel(
     max_tokens=2096,
     temperature=0.5,
     model_id="Qwen/Qwen2.5-Coder-32B-Instruct",
